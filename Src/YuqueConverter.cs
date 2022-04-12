@@ -3,6 +3,7 @@ using System.IO;
 using HtmlAgilityPack;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
+using OpenQA.Selenium.Support.UI;
 
 namespace Wepie.YuqueConverter
 {
@@ -14,10 +15,21 @@ namespace Wepie.YuqueConverter
             // "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222
             var options = new ChromeOptions();
             options.DebuggerAddress = "localhost:9222";
+            options.AddArgument("--user-agent=Mozilla/5.0 (iPad; CPU OS 6_0 like Mac OS X) AppleWebKit/536.26 (KHTML, like Gecko) Version/6.0 Mobile/10A5355d Safari/8536.25");
             using (var driver = new ChromeDriver(options))
             {
-                HandleThirdInformation(driver);
+                driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+                driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(10);
+                driver.Manage().Timeouts().AsynchronousJavaScript = TimeSpan.FromSeconds(10);
+
+                HandlePrivacyPolicy(driver);
+                // HandleThirdInformation(driver);
             }
+        }
+
+        private static void HandlePrivacyPolicy(IWebDriver driver)
+        {
+            HandleHtmlContent(driver, "https://wepie.yuque.com/docs/share/08c1a0f2-3fe6-4edb-9da3-6ff23f620fb0?#", @"C:\Workspace\finaltank-home\src\policy\privacy\Yeshen.html", "《坦克无敌》隐私政策");
         }
 
         private static void HandleThirdInformation(IWebDriver driver)
@@ -36,6 +48,7 @@ namespace Wepie.YuqueConverter
             HandleHtmlContent(driver, "https://wepie.yuque.com/docs/share/b5399759-e940-41ca-b359-0073d8a4daff?#", @"C:\Workspace\finaltank-home\src\policy\third\Xiao7.html", "坦克无敌第三方信息共享清单");
             HandleHtmlContent(driver, "https://wepie.yuque.com/docs/share/5b10a600-69ff-456a-a035-741c0431f744?#", @"C:\Workspace\finaltank-home\src\policy\third\Douyin.html", "坦克无敌第三方信息共享清单");
             HandleHtmlContent(driver, "https://wepie.yuque.com/docs/share/e87695d5-bfec-475f-8c16-fc4b4ff9f3d5?#", @"C:\Workspace\finaltank-home\src\policy\third\Momoyu.html", "坦克无敌第三方信息共享清单");
+            HandleHtmlContent(driver, "https://wepie.yuque.com/docs/share/c9caf20e-b16f-425b-9ec1-5feb578341b2?#", @"C:\Workspace\finaltank-home\src\policy\third\Yeshen.html", "坦克无敌第三方信息共享清单");
         }
 
         private static void HandleHtmlContent(IWebDriver driver, string url, string localFilePath, string title)
@@ -44,7 +57,18 @@ namespace Wepie.YuqueConverter
 
             driver.Navigate().GoToUrl(url);
 
+            IWait<IWebDriver> wait=new WebDriverWait(driver, TimeSpan.FromSeconds(30.00));                
+            wait.Until(d => ((IJavaScriptExecutor)d).ExecuteScript("return document.readyState").Equals("complete"));
+            
+            var entries = driver.Manage().Logs.GetLog(LogType.Browser);
+            foreach (var entry in entries)
+            {
+                Console.WriteLine(entry.ToString());
+            }
+
             var source = driver.PageSource;
+
+            File.WriteAllText("test.html", source);
 
             var sourceDoc = new HtmlDocument();
             sourceDoc.LoadHtml(source);
